@@ -1,8 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-
-using uint = unsigned int;
+#include <algorithm>
 
 int main(int argc, char* argv[])
 {
@@ -16,30 +15,23 @@ int main(int argc, char* argv[])
 	if (!in) return -1;
 
 	std::vector<int> values;
-	uint val;
-	while (in >> val)
+	int val, part1 = 0, part2 = 0;
+	
+	while ((!part1 || !part2) && in >> val)
+	{
+		int comp = 2020 - val;
+		if (!part1 && std::binary_search(values.cbegin(), values.cend(), comp))
+			part1 = comp * val;
+		else if (!part2)
+			for (auto first = values.cbegin(); first != values.cend() && comp > *first * 2; ++first)
+				if (std::binary_search(std::next(first), values.cend(), comp - *first))
+					part2 = val * *first * (comp - *first);
 		values.push_back(val);
+		for (size_t i = values.size(); --i > 0 && values[i] < values[i - 1];)
+			std::swap(values[i], values[i - 1]);
+	}
 
-	bool found = false;
-
-	for (uint i = 0; i < values.size() - 1 && !found; ++i)
-		for (uint j = i + 1, first = values[i]; j < values.size(); ++j)
-			if (first + values[j] == 2020u)
-			{
-				std::cout << "Part 1: " << first * values[j] << std::endl;
-				found = true;
-				break;
-			}
-
-	found = false;
-	for (uint i = 0; i < values.size() - 2 && !found; ++i)
-		for (uint j = i + 1, first = values[i]; j < values.size() - 1 && !found; ++j)
-			for (uint k = j + 1, second = values[j], two = first + second; k < values.size(); ++k)
-				if (two + values[k] == 2020u)
-				{
-					std::cout << "Part 2: " << first * second * values[k] << std::endl;
-					found = true;
-					break;
-				}
+	std::cout << "Part 1: " << part1 << std::endl << "Part 2: " << part2 << std::endl;
+	in.close();
 	return 0;
 }
