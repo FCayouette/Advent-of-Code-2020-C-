@@ -20,24 +20,25 @@ int main(int argc, char* argv[])
 
 	while (in >> seat)
 	{
-		size_t row = 0, col = 0;
-		for (size_t i = 0; i < 7; ++i)
-			row = row * 2 + (seat[i] == 'B' ? 1 : 0);
-		for (size_t i = 7; i < seat.size(); ++i)
-			col = col * 2 + (seat[i] == 'R' ? 1 : 0);
-		
-		ids.push_back(row * 8 + col);
+		size_t id = 0;
+		for (size_t i = 0; i < seat.size(); ++i)
+			id = id * 2 + (seat[i] == (i < 7 ? 'B' : 'R'));
+		ids.push_back(id);
 	}
 
 	std::sort(ids.begin(), ids.end());
 	std::cout << "Part 1: " << ids.back() << std::endl;
 
-	for (size_t i = 1; i < ids.size(); ++i)
-		if (ids[i - 1] + 1 != ids[i])
-		{
-			std::cout << "Part 2: " << ids[i - 1] + 1 << std::endl;
-			break;
-		}
+	size_t low = 0, high = ids.size() - 1, diff = ids[0];
+	do
+	{
+		size_t mid = (low + high) / 2;
+		if (mid + diff == ids[mid])
+			low = mid + 1;
+		else
+			high = mid - 1;
+	} while (low <= high);
+	std::cout << "Part 2: " << low + diff << std::endl;
 
 	return 0;
 }
