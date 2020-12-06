@@ -4,6 +4,9 @@
 #include <string>
 #include <array>
 #include <algorithm>
+#include <string_view>
+#include <charconv>
+#include <functional>
 
 int main(int argc, char* argv[])
 {
@@ -15,51 +18,45 @@ int main(int argc, char* argv[])
 
     std::ifstream in(argv[1], std::ios::in);
     if (!in) return -1;
-
     
-    std::map<std::string, std::string> fields;
-
     std::array<std::string, 7> requiredFields = { "byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid" };
-    std::array<std::string, 7> colors = {"amb", "blu", "brn", "gry", "grn", "hzl", "oth"};
-    
+    constexpr std::array<std::string_view, 7> colors = { "amb", "blu", "brn", "gry", "grn", "hzl", "oth" };
+
+    std::map<std::string_view, std::function<bool(const std::string&)>> validators = 
+    {
+        { "cid", [](const std::string&) { return true; } },
+        { "byr", [](const std::string& val) { int byr = std::stoi(val); return byr >= 1920 && byr <= 2002; } },
+        { "iyr", [](const std::string& val) { int iyr = std::stoi(val); return iyr >= 2010 && iyr <= 2020; } },
+        { "eyr", [](const std::string& val) { int eyr = std::stoi(val); return eyr >= 2020 && eyr <= 2030; } },
+        { "hcl", [](const std::string& val) { return val.size() == 7 && val[0] == '#'; } },
+        { "pid", [](const std::string& val) { return val.size() == 9; } },
+        { "ecl", [&colors](const std::string& val) { return std::any_of(colors.cbegin(), colors.cend(), [&val](const std::string_view& c) { return c == val; }); } },
+        { "hgt", [](const std::string& val) { 
+            if (val.ends_with("in"))
+            {
+                long num;
+                std::from_chars(&val[0], &val[val.size() - 2], num);
+                return num >= 59 && num <= 76;
+            }
+            else if (val.ends_with("cm"))
+            {
+                long num;
+                std::from_chars(&val[0], &val[val.size() - 2], num);
+                return num >= 150 && num <= 193;
+            }
+            return false; } }
+    };
+
+    std::map<std::string, std::string> fields;
     int part1 = 0, part2 = 0;
 
-    auto Validate = [&fields, &requiredFields, &colors, &part1, &part2]()
+    auto Validate = [&fields, &requiredFields, &colors, &part1, &part2, &validators]()
     {
         if (std::all_of(requiredFields.cbegin(), requiredFields.cend(), [&fields](const std::string& field) { return fields.find(field) != fields.cend(); }))
         {
             ++part1;
-            if (int byr = atoi(fields["byr"].c_str());
-                byr >= 1920 && byr <= 2002)
-                if (int iyr = atoi(fields["iyr"].c_str());
-                    iyr >= 2010 && iyr <= 2020)
-                    if (int eyr = atoi(fields["eyr"].c_str());
-                        eyr >= 2020 && eyr <= 2030)
-                    {
-                        std::string height = fields["hgt"];
-                        bool valid = false;
-                        if (height.find("in") != std::string::npos)
-                        {
-                            int val = atoi(height.substr(0, height.size() - 2).c_str());
-                            valid = val >= 59 && val <= 76;
-                        }
-                        else if (height.find("cm") != std::string::npos)
-                        {
-                            int val = atoi(height.substr(0, height.size() - 2).c_str());
-                            valid = val >= 150 && val <= 193;
-                        }
-                        if (valid)
-                        {
-                            if (const std::string& hcl = fields["hcl"];
-                                hcl.size() == 7 && hcl[0] == '#')
-                            {
-                                if (std::any_of(colors.cbegin(), colors.cend(), [&val = fields["ecl"]](const std::string& s){return val == s;}))
-                                    if (const std::string& pid = fields["pid"];
-                                        pid.size() == 9)
-                                        ++part2;
-                            }
-                        }
-                    }      
+            if (std::all_of(fields.cbegin(), fields.cend(), [&validators](const auto& field) { return validators.find(field.first)->second(field.second); }))
+                ++part2;
         }
     };
 
@@ -79,14 +76,13 @@ int main(int argc, char* argv[])
             {
                 std::string field = line.substr(start, 3);
                 end = line.find(' ', start + 4);
-                std::string value = line.substr(start + 4, end == std::string::npos ? std::string::npos : end - start - 4);
+                fields[field] = line.substr(start + 4, end == std::string::npos ? end : end - start - 4);
                 if (end != std::string::npos)
                     start = end + 1;
-                fields[field] = value;
             } while (end != std::string::npos);
         }
     }
-    Validate();
+    Validate(); // Must check last entry as there is no empty line at the end of the data file
     std::cout << "Part 1: " << part1 << std::endl;
     std::cout << "Part 2: " << part2 << std::endl;
     return 0;
