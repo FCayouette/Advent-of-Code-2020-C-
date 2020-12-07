@@ -7,17 +7,15 @@ int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		std::cout << "Usage: Day05.exe DataFilename" << std::endl;
+		std::cout << "Usage: Day06.exe DataFilename" << std::endl;
 		return -1;
 	}
 
 	std::ifstream in(argv[1], std::ios::in);
 	if (!in) return -1;
 
-	std::array<char, 30> line;
 	std::array<int, 26> histogram;
-	for (int i = 0; i < 26; ++i)
-		histogram[i] = 0;
+	histogram.fill(0);
 	int part1 = 0, part2 = 0, groupCount = 0;
 	
 	auto CountGroup = [&part1, &part2, &groupCount, &histogram]()
@@ -31,13 +29,13 @@ int main(int argc, char* argv[])
 		}
 	};
 
+	std::array<char, 30> line;
 	while (in.getline(&line[0], 30))
 	{
 		if (strlen(&line[0]) == 0)
 		{
 			CountGroup();
-			for (int i = 0; i < 26; ++i)
-				histogram[i] = 0;
+			histogram.fill(0);
 			groupCount = 0;
 		}
 		else
