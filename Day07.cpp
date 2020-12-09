@@ -6,29 +6,17 @@
 #include <utility>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
-using BagCount = std::vector<std::pair<int, std::string>>;
-using Rules = std::map<std::string, BagCount>;
-
-bool CanContainGold(const Rules& rules, const std::string& color)
-{	
-	const BagCount& rule = rules.find(color)->second;
-	if (rule.empty())
-		return false;
-	for (const auto& pair : rule)
-		if (pair.second == "shiny gold" || CanContainGold(rules, pair.second))
-			return true;
-	return false;
-}
-
-size_t CountInGold(const Rules& rules, const std::string& color)
-{
-	const BagCount& rule = rules.find(color)->second;
-	size_t result = 1;
-	for (const auto& pair : rule)
-		result += pair.first * CountInGold(rules, pair.second);
-	return result;
-}
+// Allows of recursive lambdas
+template <typename T>
+class y_combinator {
+	T lambda;
+public:
+	constexpr y_combinator(T&& t) : lambda(std::forward<T>(t)) {}
+	template <typename...Args>
+	constexpr decltype(auto) operator()(Args&&...args) const { return lambda(std::move(*this), std::forward<Args>(args)...); }
+};
 
 int main(int argc, char* argv[])
 {
@@ -41,18 +29,33 @@ int main(int argc, char* argv[])
 	std::ifstream in(argv[1], std::ios::in);
 	if (!in) return -1;
 
-	Rules rules;
+	std::unordered_map<std::string, size_t> colorCode;
+	size_t totalColors = 0;
+	std::vector<std::vector<std::pair<size_t, size_t>>> fastRules;
+
+	auto GetColorCode = [&colorCode, &totalColors, &fastRules](const std::string& color)
+	{
+		if (auto iter = colorCode.find(color);
+			iter != colorCode.cend())
+			return iter->second;
+		size_t result = totalColors;
+		fastRules.emplace_back();
+		colorCode[color] = totalColors++;
+		return result;
+	};
+	
+	// Make sure we have shiny gold as color 0
+	GetColorCode("shiny gold");
 
 	std::array<char, 256> buffer;
-	std::string_view contains(" bags contain"), noOther = ("no other bags."), bags (" bag");
+	constexpr std::string_view contains(" bags contain"), noOther = ("no other bags."), bags (" bag");
 
-	while (in.getline(&buffer[0], 256))
+	while (in.getline(&buffer[0], buffer.size()))
 	{
 		std::string line = &buffer[0];
 		size_t index = line.find(contains);
-		std::string color = line.substr(0, index);
+		size_t colorCode = GetColorCode(line.substr(0, index));
 		line = line.substr(index + contains.size()+1);
-		rules[color] = std::vector<std::pair<int, std::string>>();
 		if (line != noOther)
 			while (true)
 			{
@@ -60,7 +63,8 @@ int main(int argc, char* argv[])
 				std::string pair = line.substr(0, index);
 				index = pair.find(' ');
 				int num = atoi(pair.substr(0, index).c_str());
-				rules[color].push_back(std::make_pair(num, pair.substr(index + 1)));
+				size_t targetCode = GetColorCode(pair.substr(index + 1));
+				fastRules[colorCode].emplace_back(num, targetCode);
 				index = line.find(", ");
 				if (index != std::string::npos)
 					line = line.substr(index + 2);
@@ -68,13 +72,29 @@ int main(int argc, char* argv[])
 			}
 	}
 
+	auto CanContainShinyGold = y_combinator([&fastRules](auto&& CanContainShinyGold, size_t color) -> bool
+		{
+			const std::vector<std::pair<size_t, size_t>>& contains = fastRules[color];
+			for (const auto& pair : contains)
+				if (!pair.second || CanContainShinyGold(pair.second))
+					return true;
+			return false;
+		});
+
+	auto CountInColor = y_combinator([&fastRules](auto&& CountInColor, size_t color) -> size_t
+		{
+			size_t result = 1;
+			for (const auto& pair : fastRules[color])
+				result += pair.first * CountInColor(pair.second);
+			return result;
+		});
+
 	int part1 = 0;
-	for (const auto& pair : rules)
-		if (CanContainGold(rules, pair.first))
+	for (size_t i = 1; i < fastRules.size(); ++i)
+		if (CanContainShinyGold(i))
 			++part1;
 
 	std::cout << "Part 1: " << part1 << std::endl;
-	std::cout << "Part 2: " << CountInGold(rules, "shiny gold")-1 << std::endl;
-
+	std::cout << "Part 2: " << CountInColor(0) - 1 << std::endl;
 	return 0;
 }
