@@ -5,6 +5,7 @@
 #include <vector>
 #include <string_view>
 #include <array>
+#include <charconv>
 
 int main(int argc, char* argv[])
 {
@@ -26,7 +27,7 @@ int main(int argc, char* argv[])
     {
         size_t i = std::distance(inst.cbegin(), std::find(inst.cbegin(), inst.cend(), data));
         in >> data;
-        int value = atoi(data.c_str());
+        int value = std::stoi(data);
         instructions.emplace_back(i, value);
     }
 
@@ -43,6 +44,7 @@ int main(int argc, char* argv[])
         {
         case 1:
             acc += instructions[PC].second;
+            [[fallthrough]];
         case 0:
             ++PC;
             break;
@@ -53,13 +55,10 @@ int main(int argc, char* argv[])
         return true;
     };
 
-    while (true)
-        if (!executeLine())
-            break;
-
+    while (executeLine()) {}
     std::cout << "Part 1: " << acc << std::endl;
 
-    auto switchInstruction = [](std::pair<size_t, int>& p) { p.first = (p.first==0 ? 2 : 0); };
+    auto switchInstruction = [](std::pair<size_t, int>& p) { p.first = (!p.first ? 2 : 0); };
 
     for (size_t i = 0; i < instructions.size(); ++i)
     {
