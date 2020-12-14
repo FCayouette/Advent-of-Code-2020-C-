@@ -36,6 +36,18 @@ constexpr bool Within(T min, T val, T max)
 }
 
 ///////////////////////////////////////////////////////////////////
+// Recursive lambda support
+///////////////////////////////////////////////////////////////////
+template <typename T>
+class y_combinator {
+	T lambda;
+public:
+	constexpr y_combinator(T&& t) : lambda(std::forward<T>(t)) {}
+	template <typename...Args>
+	constexpr decltype(auto) operator()(Args&&...args) const { return lambda(std::move(*this), std::forward<Args>(args)...); }
+};
+
+///////////////////////////////////////////////////////////////////
 // Coordinate systems
 ///////////////////////////////////////////////////////////////////
 template<typename T>
