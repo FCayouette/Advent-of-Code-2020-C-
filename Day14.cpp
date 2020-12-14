@@ -2,29 +2,10 @@
 #include <fstream>
 #include <string>
 #include <map>
-
+#include <numeric>
 #include "TemplatedUtilities.h"
 
 using u64 = unsigned long long;
-
-
-void WriteAtAddresses(std::map<u64, u64>& mem, u64 val, const std::string& mask, size_t where)
-{
-    while (where < mask.size()  && mask[where] != 'X')
-        ++where;
-    if (where >= mask.size())
-    {
-        u64 address = std::stoll(mask, nullptr, 2);
-        mem[address] = val;
-        return;
-    }
-    std::string nMask = mask;
-    nMask[where] = '0';
-    WriteAtAddresses(mem, val, nMask, where + 1);
-    nMask[where++] = '1';
-    WriteAtAddresses(mem, val, nMask, where);
-}
-
 
 int main(int argc, char* argv[])
 {
@@ -39,6 +20,22 @@ int main(int argc, char* argv[])
 
     std::map<u64, u64> memory1, memory2;
     std::string start, equal, val, mask;
+
+    auto WriteAddresses = y_combinator([&memory2](auto&& WriteAddresses, u64 val, const std::string& mask, size_t where) {
+        while (where < mask.size() && mask[where] != 'X')
+            ++where;
+        if (where >= mask.size())
+        {
+            u64 address = std::stoll(mask, nullptr, 2);
+            memory2[address] = val;
+            return;
+        }
+        std::string nMask = mask;
+        nMask[where] = '0';
+        WriteAddresses(val, nMask, where + 1);
+        nMask[where++] = '1';
+        WriteAddresses(val, nMask, where);
+        });
 
     while (in >> start >> equal >> val)
     {
@@ -64,20 +61,11 @@ int main(int argc, char* argv[])
             for (auto iter = newMask.rbegin(); iter != newMask.rend(); ++iter, currentBit*=2ull)
                 if (*iter == '0' && index & currentBit)
                         *iter = '1';
-            WriteAtAddresses(memory2, part2Val, newMask, 0);
+            WriteAddresses(part2Val, newMask, 0);
         }
     }
 
-    u64 part1 = 0ull;
-    for (const auto& memPoint : memory1)
-        part1 += memPoint.second;
-
-    std::cout << "Part 2:" << part1 << std::endl;
-
-    u64 part2 = 0ull;
-    for (const auto& memPoint : memory2)
-        part2 += memPoint.second;
-
-    std::cout << "Part 2: "<< part2 << std::endl;
+    std::cout << "Part 1:" << std::accumulate(memory1.cbegin(), memory1.cend(), 0ull, [](u64 l, const auto& p) { return l + p.second; }) << std::endl;
+    std::cout << "Part 2: " << std::accumulate(memory2.cbegin(), memory2.cend(), 0ull, [](u64 l, const auto& p) { return l + p.second; }) << std::endl;
     return 0;
 }
