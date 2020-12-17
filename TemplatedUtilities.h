@@ -83,6 +83,16 @@ struct Coord3D
 };
 
 template<typename T>
+struct Coord4D
+{
+	constexpr Coord4D(T X = 0, T Y = 0, T Z = 0, T W = 0) : x(X), y(Y), z(Z), w(W) {}
+	constexpr bool operator <(const Coord4D& p) const { if (x < p.x) return true; if (p.x < x) return false; if (y < p.y) return true; if (p.y < y) return false; if (z < p.z) return true; if (p.z < z) return false; return w < p.w; }
+	constexpr bool operator==(const Coord4D& p) const { return x == p.x && y == p.y && z == p.z && w == p.w; }
+	constexpr bool operator!=(const Coord4D& p) const { return x != p.x || y != p.y || z != p.z || w != p.w; }
+	T x, y, z, w;
+};
+
+template<typename T>
 T ManhattanDistance(const Coord<T>& c1, const Coord<T>& c2)
 {
 	if constexpr (std::is_signed_v<T>)
@@ -94,6 +104,7 @@ T ManhattanDistance(const Coord<T>& c1, const Coord<T>& c2)
 
 using Point = Coord<int>;
 using Point3D = Coord3D<int>;
+using Point4D = Coord4D<int>;
 
 constexpr std::array<char, 4> coords = { 'N', 'E', 'S', 'W' };
 constexpr std::array<Point, 4> directions = { Point(1, 0), Point(0, 1), Point(-1, 0), Point(0,-1) };
