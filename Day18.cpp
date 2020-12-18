@@ -24,7 +24,7 @@ i64 Evaluate(std::string str)
                 ++index;
             } while (count);
             val = Evaluate(str.substr(1, index - 2));
-            str = str.substr(std::min(str.size(), index -1));
+            str = str.substr(index -1);
         }
         else
             val = str[0] - '0';
@@ -63,7 +63,7 @@ i64 Evaluate2(std::string str)
                 ++index;
             } while (count);
             val = Evaluate2(str.substr(1, index - 2));
-            str = str.substr(std::min(str.size(), index - 1));
+            str = str.substr(index - 1);
         }
         else
             val = str[0] - '0';
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
     {
         std::string line(&buffer[0]);
         part1 += Evaluate(line);
-        part2 = Evaluate2(line);
+        part2 += Evaluate2(line);
     }
     std::cout << "Part 1: " << part1 << std::endl << "Part 2 " << part2 << std::endl;
     return 0;
