@@ -90,8 +90,7 @@ int main(int argc, char* argv[])
     std::array<char, 256> buffer;
     RuleSet rules;
     bool ruleParsing = true;
-    size_t part1 = 0, part2 = 0;
-    std::vector<std::string> messages;
+    size_t part1 = 0, part2 = 0, rule11MinSize;
     while (in.getline(&buffer[0], 256))
     {
         std::string line(&buffer[0]);
@@ -99,6 +98,7 @@ int main(int argc, char* argv[])
         {
             ruleParsing = false;
             std::sort(rules.begin(), rules.end(), [](const RulePair& l, const RulePair& r) { return l.first < r.first; });
+            rule11MinSize = rules[42].second.MinSize(rules) + rules[31].second.MinSize(rules);
             continue;
         }
         if (ruleParsing)
@@ -114,48 +114,43 @@ int main(int argc, char* argv[])
             size_t work = 0;
             if (rules[0].second.Evaluate(rules, str, work) && work == str.length())
                 ++part1;
-            messages.push_back(&buffer[0]);
-        }
-    }
-    std::cout << part1 << std::endl;
-
-    size_t rule11MinSize = rules[42].second.MinSize(rules) + rules[31].second.MinSize(rules);
-    for (const std::string& message : messages)
-    {
-        size_t work = 0;
-        std::vector<size_t> startsAfter8;
-        while (true)
-        {
-            if (rules[42].second.Evaluate(rules, message, work) && work < message.size())
-                startsAfter8.push_back(work);
-            else break;
-        }
-        if (startsAfter8.size() >= 2)
-        {
-            bool found = false;
-            startsAfter8.pop_back();
-            for (size_t s : startsAfter8)
+            // Part 2 evaluation
+            work = 0;
+            std::vector<size_t> startsAfter8;
+            while (true)
             {
-                if (found) break;
-                size_t iterations = 0;
-                while (!found && s + (++iterations) * rule11MinSize <= message.size())
+                if (rules[42].second.Evaluate(rules, str, work) && work < str.size())
+                    startsAfter8.push_back(work);
+                else break;
+            }
+            if (startsAfter8.size() >= 2)
+            {
+                bool found = false;
+                startsAfter8.pop_back();
+                for (size_t s : startsAfter8)
                 {
-                    bool valid = true;
-                    size_t work = s;
-                    for (size_t i = 0; valid && i < iterations; ++i)
-                        valid = rules[42].second.Evaluate(rules, message, work) && work <= message.size();
-                    if (valid)
-                        for (size_t i = 0; valid && i < iterations; ++i)
-                            valid = rules[31].second.Evaluate(rules, message, work) && work <= message.size();
-                    if (valid && work == message.size())
+                    if (found) break;
+                    size_t iterations = 0;
+                    while (!found && s + (++iterations) * rule11MinSize <= str.size())
                     {
-                        ++part2;
-                        found = true;
+                        bool valid = true;
+                        size_t work = s;
+                        for (size_t i = 0; valid && i < iterations; ++i)
+                            valid = rules[42].second.Evaluate(rules, str, work) && work < str.size();
+                        if (valid)
+                            for (size_t i = 0; valid && i < iterations; ++i)
+                                valid = rules[31].second.Evaluate(rules, str, work) && work <= str.size();
+                        if (valid && work == str.size())
+                        {
+                            ++part2;
+                            found = true;
+                        }
                     }
                 }
             }
         }
     }
-    std::cout << "Part 2: " << part2 << std::endl;
+    std::cout << "Part 1: " << part1 << std::endl << "Part 2: " << part2 << std::endl;
+
     return 0;
 }
