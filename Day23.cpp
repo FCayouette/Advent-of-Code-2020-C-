@@ -1,126 +1,81 @@
 #include <iostream>
-#include <list>
 #include <algorithm>
 #include <vector>
 #include <array>
-#include <set>
 #include <string>
 
-class Node
+struct Link
 {
-public:
-    Node(size_t v = 0, Node* n = nullptr, Node* p = nullptr) : val(v), next(n), prev(p) {}
-    size_t val;
-    Node* next, * prev;
+    Link* next = nullptr, * prev = nullptr;
 };
 
 int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Usage: Day03.exe labeling" << std::endl;
+        std::cout << "Usage: Day23.exe labeling" << std::endl;
         return -1;
     }
 
-    std::string labeling("315679824");
-    std::vector<char> cups;
-    std::vector<Node*> nodePtrs(1000001);
-    Node* buffer = nullptr;
-    for (size_t i = 0; i < 1000000; ++i)
-    {
-        Node* n;
-        if (i < labeling.size())
-        {
-            cups.push_back(labeling[i]-'0');
-            n = new Node(labeling[i]-'0');
-        }
-        else
-            n = new Node(i + 1);
-        nodePtrs[n->val] = n;
-        if (buffer == nullptr)
-        {
-            buffer = n;
-            buffer->next = buffer;
-            buffer->prev = buffer;
-        }
-        else
-        {
-            Node* last = buffer->prev;
-            last->next = n;
-            n->prev = last;
-            n->next = buffer;
-            buffer->prev = n;
-        }
-    }
+    std::string labeling(argv[1]);
+    std::vector<Link> cups(10);
 
-    std::array<char, 3> pickedUp;
-    for (size_t turn = 0, current = 0; turn < 100; ++turn)
+    auto PlayGame = [&cups, &labeling](size_t nTurns)
     {
-        char val = cups[current];
-        bool atEnd = false;
-        for (size_t i = 0; i < 3; ++i)
+        size_t current = 0, nCups = cups.size();
+        for (size_t i = 1; i < cups.size(); ++i)
         {
-            if (current + 1 == cups.size())
-                atEnd = true;
-            if (atEnd)
+            size_t val = i - 1 < labeling.size() ? labeling[i - 1] - '0' : i;
+
+            if (!current)
             {
-                pickedUp[i] = cups[0];
-                cups.erase(cups.begin());
+                current = val;
+                cups[current].next = cups[current].prev = &cups[current];
             }
             else
             {
-                pickedUp[i] = cups[current + 1];
-                cups.erase(cups.begin() + current + 1);
+                Link* last = cups[current].prev;
+                last->next = &cups[val];
+                cups[val].prev = last;
+                cups[val].next = &cups[current];
+                cups[current].prev = &cups[val];
             }
         }
-        char target = val == 1 ? 9 : val - 1;
-        std::vector<char>::const_iterator iter;
-        while ((iter = std::find(cups.cbegin(), cups.cend(), target)) == cups.cend())
-            target = target == 1 ? 9 : target - 1;
-        ++iter;
-        for (int i = 2; i >= 0; --i)
-            iter = cups.insert(iter, pickedUp[i]);
-        
-        current = (std::distance(cups.cbegin(), std::find(cups.cbegin(), cups.cend(), val)) + 1) % 9;
-    }
 
-    auto iter = std::find(cups.cbegin(), cups.cend(), 1);
-    
-    if (++iter == cups.cend()) iter = cups.cbegin();
+        std::array<size_t, 3> pickedUp;
+        while (nTurns--)
+        {
+            Link* l0 = cups[current].next, * l1 = l0->next, * l2 = l1->next;
+            pickedUp[0] = l0 - &cups[0];
+            pickedUp[1] = l1 - &cups[0];
+            pickedUp[2] = l2 - &cups[0];
+            size_t destVal = (current + nCups - 3) % (nCups - 1) + 1;
+            while (std::find(pickedUp.cbegin(), pickedUp.cend(), destVal) != pickedUp.cend())
+                destVal = (destVal + nCups - 3) % (nCups - 1) + 1;
+
+            cups[current].next = l2->next;
+            l2->next->prev = &cups[current];
+            Link& destination = cups[destVal], * dn = destination.next;
+            destination.next = l0;
+            l0->prev = &destination;
+            l2->next = dn;
+            dn->prev = l2;
+            current = cups[current].next - &cups[0];
+        }
+    };
+
+    PlayGame(100);
+    Link* startLink = &cups[1], *currentLink = startLink->next;
     std::cout << "Part 1: ";
-    while (*iter != 1)
+    while (currentLink != startLink)
     {
-        std::cout << (char)(*iter + '0');
-        if (++iter == cups.cend()) iter = cups.cbegin();
+        std::cout << currentLink - &cups[0];
+        currentLink = currentLink->next;
     }
     std::cout << std::endl;
-
-    for (size_t turn = 0; turn < 10000000; ++turn)
-    {
-        Node* n1 = buffer->next, * n2 = n1->next, * n3 = n2->next;
-        std::set<size_t> pickedUp;
-        pickedUp.insert(n1->val);
-        pickedUp.insert(n2->val);
-        pickedUp.insert(n3->val);
-        size_t nextVal = buffer->val;
-        nextVal = 1 + ((1000000 + nextVal - 2) % 1000000);
-        while (pickedUp.find(nextVal) != pickedUp.cend())
-            nextVal = 1 + ((1000000 + nextVal - 2) % 1000000);
-
-        buffer->next = n3->next;
-        n3->next->prev = buffer;
-
-        Node* destinationCup = nodePtrs[nextVal], * nn = destinationCup->next;
-        destinationCup->next = n1;
-        n1->prev = destinationCup;
-        n3->next = nn;
-        nn->prev = n3;
-        buffer = buffer->next;
-    }
-
-    std::cout << "Part 2: " << (unsigned long long)nodePtrs[1]->next->val * nodePtrs[1]->next->next->val << std::endl;
-
-    std::for_each(nodePtrs.begin(), nodePtrs.end(), [](Node* n) { delete n; });
+    cups.resize(1000001);
+    PlayGame(10000000);
+    std::cout << "Part 2: " << (unsigned long long)(cups[1].next - &cups[0]) * (cups[1].next->next - &cups[0]) << std::endl;
 
     return 0;
 }
