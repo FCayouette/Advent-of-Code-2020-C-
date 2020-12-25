@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <array>
+#include <unordered_map>
 
 //////////////////////////////////////////////////////////////////
 // Utility methods
@@ -171,6 +172,24 @@ constexpr T ModuloExp(T base, T exp, T mod)
 	}
 	return result % mod;
 }
+
+// From https://www.geeksforgeeks.org/discrete-logarithm-find-integer-k-ak-congruent-modulo-b/
+template<typename T>
+T ModuloLog(T a, T b, T m)
+{
+	T n = static_cast<T>(sqrt(m)) + (T)1;
+	std::unordered_map<T, T> value;
+	for (T i = n; i >= 1; --i)
+		value[ModuloExp(a, i * n, m)] = i;
+	for (T j = 0; j < n; ++j)
+		if (T cur = ModuloMul(ModuloExp(a, j, m), b, m);
+			value[cur])
+			if (T ans = value[cur] * n - j;
+				ans < m)
+				return ans;
+	return static_cast<T>(-1);
+}
+
 
 // From https://www.rookieslab.com/posts/how-to-find-multiplicative-inverse-of-a-number-modulo-m-in-python-cpp
 template <typename T>
