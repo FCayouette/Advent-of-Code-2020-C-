@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Usage: Day10.exe Datafilename" << std::endl;
+        std::cout << "Usage: Day11.exe Datafilename" << std::endl;
         return -1;
     }
 
@@ -65,17 +65,19 @@ int main(int argc, char* argv[])
         std::swap(layout, work);
     } while (change);
 
-    std::cout << "Part 1: " << std::accumulate(layout.cbegin(), layout.cend(), 0, [](size_t x, const std::string& s) { return x+std::count(s.cbegin(), s.cend(), '#'); }) << std::endl;
-    
-    auto inside = [maxX, maxY](int x, int y) -> bool
-    {
-        if (x < 0 || y < 0 || x >= maxX || y >= maxY)
-            return false;
-        return true;
-    };
+    auto Count = [&layout]() { return std::accumulate(layout.cbegin(), layout.cend(), 0, [](size_t x, const std::string& s) { return x + std::count(s.cbegin(), s.cend(), '#'); }); };
 
-    auto CountVisible = [&inside, &layout, maxX, maxY](int x, int y) -> int
+    std::cout << "Part 1: " << Count() << std::endl;
+    
+    auto CountVisible = [&layout, maxX, maxY](int x, int y) -> int
     {
+        auto inside = [maxX, maxY](int x, int y) -> bool
+        {
+            if (x < 0 || y < 0 || x >= maxX || y >= maxY)
+                return false;
+            return true;
+        };
+
         int result = 0;
         constexpr std::array<std::pair<int, int>, 8> dir = 
         { std::make_pair(-1, -1), std::make_pair(0, -1), std::make_pair(1, -1), std::make_pair(1, 0), std::make_pair(1, 1), 
@@ -99,7 +101,7 @@ int main(int argc, char* argv[])
         return result;
     };
 
-    layout = backup;
+    std::swap(layout, backup);
     do
     {
         change = false;
@@ -130,6 +132,6 @@ int main(int argc, char* argv[])
         std::swap(layout, work);
     } while (change);
 
-    std::cout << "Part 2: " << std::accumulate(layout.cbegin(), layout.cend(), 0, [](size_t x, const std::string& s) { return x + std::count(s.cbegin(), s.cend(), '#'); }) << std::endl;
+    std::cout << "Part 2: " << Count() << std::endl;
     return 0;
 }
