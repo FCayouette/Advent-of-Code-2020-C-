@@ -17,10 +17,10 @@ let rec GetModifiedValue (mask:string) power i value =
                                            | '0' -> GetModifiedValue mask newPower nextI value &&& ~~~power
                                            | _ -> GetModifiedValue mask newPower nextI value
 
-let Part1 (m:Map<_,_>) (mask:string, (mem:((uint64*uint64)list))) =
-    mem |> List.fold(fun (a:Map<_,_>) (address, value) -> Map.add address (GetModifiedValue mask 1UL 1 value) a) m
+let Part1 m (mask:string, mem) =
+    mem |> List.fold(fun a (address, value) -> Map.add address (GetModifiedValue mask 1UL 1 value) a) m
 
-let rec WriteToModifiedAddress (m:Map<_,_>) address (mask:string) value power i =
+let rec WriteToModifiedAddress m address (mask:string) value power i =
     if i > mask.Length then Map.add address value m
     else let newPower = power*2UL
          let nextI = i + 1
@@ -29,8 +29,8 @@ let rec WriteToModifiedAddress (m:Map<_,_>) address (mask:string) value power i 
                                            | _ -> let tmp = WriteToModifiedAddress m (address ||| power) mask value newPower nextI
                                                   WriteToModifiedAddress tmp (address &&& ~~~ power) mask value newPower nextI
 
-let Part2 (m:Map<_,_>) (mask:string, (mem:((uint64*uint64)list))) =
-    mem |> List.fold(fun (a:Map<_,_>) (address, value) -> WriteToModifiedAddress a address mask value 1UL 1) m
+let Part2 (m:Map<_,_>) (mask:string, mem) =
+    mem |> List.fold(fun a (address, value) -> WriteToModifiedAddress a address mask value 1UL 1) m
 
 let AddValuesInMemory m = Map.fold(fun total _ v -> total + v) 0UL m
 
