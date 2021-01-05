@@ -16,29 +16,30 @@ int main(int argc, char* argv[])
 
     std::string line;
     in >> line;
-    size_t comma = 0, count = 0;
-    std::unordered_map<int, std::pair<size_t, size_t>> numbers;
-    int num;
+    size_t comma = 0, count = 1, num;
+    std::unordered_map<size_t, size_t> numbers;
     while (true)
     {
         num = stoi(line.substr(0, comma = line.find(',')));
-        numbers[num] = std::make_pair(count, count);
+        numbers[num] = count;
         ++count;
         if (comma == std::string::npos)
             break;
         line = line.substr(comma + 1);
     }
-
+    num = 0;
     while (count < 30000000)
     {
-        num = numbers[num].first - numbers[num].second;
         if (auto iter = numbers.find(num);
             iter == numbers.cend())
-            numbers[num] = std::make_pair(count, count);
+        {
+            numbers[num] = count;
+            num = 0;
+        }
         else
         {
-            iter->second.second = iter->second.first;
-            iter->second.first = count;
+            num = count - iter->second;
+            iter->second = count;
         }
         if (++count == 2020)
             std::cout << "Part 1: " << num << std::endl;
