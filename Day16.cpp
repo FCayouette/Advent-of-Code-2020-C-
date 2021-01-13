@@ -19,8 +19,8 @@ int main(int argc, char* argv[])
 
     std::array<char, 256> buffer;
     char state = 0;
-    std::vector<std::pair<size_t, size_t>> valueRanges; //inclusive
-    std::vector<size_t> ticketValues;
+    std::vector<std::pair<size_t, size_t>> valueRanges;
+    std::vector<size_t> ticketValues, targetNames;
     std::vector<std::vector<size_t>> validTickets;
     size_t rangeCount = 0;
 
@@ -44,7 +44,8 @@ int main(int argc, char* argv[])
             {
                 std::string line = &buffer[0];
                 size_t a, b, c, d;
-                std::string name = line.substr(0, line.find(':'));
+                if (line.substr(0, line.find(':')).find("departure") != std::string::npos)
+                    targetNames.push_back(rangeCount);                
                 line = line.substr(line.find(':') + 2);
                 sscanf_s(line.c_str(), "%d-%d or %d-%d", &a, &b, &c, &d);
                 valueRanges.emplace_back(a, b);
@@ -97,15 +98,10 @@ int main(int argc, char* argv[])
     std::cout << "Part 1: " << part1 << std::endl;
 
     for (const auto& t : validTickets)
-    {
         for (size_t i = 0; i < t.size(); ++i)
-        {
-            size_t val = t[i];
-            for (size_t r = 0; r < valueRanges.size(); r += 2)
+            for (size_t r = 0, val = t[i]; r < valueRanges.size(); r += 2)
                 if (!((valueRanges[r].first <= val && val <= valueRanges[r].second) || (valueRanges[r + 1].first <= val && val <= valueRanges[r + 1].second)))
                     possibilities[r / 2].erase(i);
-        }
-    }
 
     unsigned long long part2 = 1ull;
     for (size_t k = 0; k < possibilities.size(); ++k)
@@ -113,7 +109,7 @@ int main(int argc, char* argv[])
             if (possibilities[i].size() == 1)
             {
                 size_t val = *possibilities[i].cbegin();
-                if (i < 6)
+                if (std::binary_search(targetNames.cbegin(), targetNames.cend(), i))
                     part2 *= ticketValues[val];
                 for (auto& s : possibilities)
                     s.erase(val);
