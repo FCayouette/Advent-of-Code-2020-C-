@@ -22,11 +22,11 @@ let TicketInvalidValues cats = Array.fold(fun t v -> if NonValid v cats then t+v
 
 let IsTicketInvalid cats = Array.fold(fun t v -> t || NonValid v cats) false 
 
-let GetPos cats (_,x) = 
+let GetPos cats x = 
     Array.fold(fun (s:Set<_>) (c, cat) -> if IsInvalid x cat then s.Add(c) else s) Set.empty (Array.indexed cats)
 
 let CheckPos ((possibilities:Set<_>[]), cats) ticket =
-    Array.fold(fun p (i,x) -> Array.append(p) [|Set.difference possibilities.[i] (GetPos cats (i,x))|]) [||] (Array.indexed ticket), cats
+    Array.fold(fun p x -> Array.append(p) [|Set.difference possibilities.[p.Length] (GetPos cats x)|]) [||] ticket, cats
 
 let IsDeparture (s:string) = s.Length > 9 && s.Substring(0,9) = "departure"
 
