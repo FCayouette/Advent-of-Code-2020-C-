@@ -1,87 +1,53 @@
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <string_view>
 #include <array>
 #include <algorithm>
+
 using i64 = long long;
 
-i64 Evaluate(std::string str)
+i64 EvalParentheses(std::string_view& str, i64(*evaluator)(std::string_view))
 {
-    i64 result = 0;
-    bool first = true, isAdd = false;
-    while (str.size() > 0)
-    {
-        i64 val;
-        if (str[0] == '(')
+    size_t count = 1, index = 0;
+    while (count && ++index)
+        switch (str[index])
         {
-            size_t count = 1, index = 1;
-            do
-            {
-                if (str[index] == '(')
-                    ++count;
-                else if (str[index] == ')')
-                    --count;
-                ++index;
-            } while (count);
-            val = Evaluate(str.substr(1, index - 2));
-            str = str.substr(index -1);
+        case '(': ++count; break;
+        case ')': --count;
         }
-        else
-            val = str[0] - '0';
-
-        if (first) {
-            result = val;
-            first = false;
-        }
-        else if (isAdd) result += val;
-        else result *= val;
-
-        if (str.size() < 3) return result;
-        str = str.substr(2);
-        isAdd = str[0] == '+';
-        str = str.substr(2);
-    }
+    
+    i64 result = evaluator(str.substr(1, index - 1));
+    str = str.substr(index);
     return result;
 }
 
-i64 Evaluate2(std::string str)
+i64 Evaluate1(std::string_view str)
 {
-    i64 result = 0;
-    bool first = true, isAdd = false;
-    while (str.size() > 0)
+    i64 result = 0ll;
+    bool isAdd = true;
+    while (true)
     {
-        i64 val;
-        if (str[0] == '(')
-        {
-            size_t count = 1, index = 1;
-            do
-            {
-                if (str[index] == '(')
-                    ++count;
-                else if (str[index] == ')')
-                    --count;
-                ++index;
-            } while (count);
-            val = Evaluate2(str.substr(1, index - 2));
-            str = str.substr(index - 1);
-        }
-        else
-            val = str[0] - '0';
-
-        if (first) {
-            result = val;
-            first = false;
-        }
-        else result += val;
-
-        if (str.size() < 3) return result;
-        str = str.substr(2);
-
-        if (str[0] == '*')
-            return result * Evaluate2(str.substr(2));
-        str = str.substr(2);
+        i64 val = str[0] == '(' ? EvalParentheses(str, Evaluate1) : str[0] - '0';
+        result = isAdd ? result + val : result * val;
+        if (str.size() < 4)
+            return result;
+        isAdd = str[2] == '+';
+        str = str.substr(4);
     }
-    return result;
+}
+
+i64 Evaluate2(std::string_view str)
+{
+    i64 result = 0ll;
+    while (true)
+    {
+        result += str[0] == '(' ? EvalParentheses(str, Evaluate2) : str[0] - '0';
+        if (str.size() < 4)
+            return result;
+        if (str[2] == '*')
+            return result * Evaluate2(str.substr(4));
+        str = str.substr(4);
+    }
 }
 
 int main(int argc, char* argv[])
@@ -99,10 +65,10 @@ int main(int argc, char* argv[])
     std::array<char, 256> buffer;
     while (in.getline(&buffer[0], 256))
     {
-        std::string line(&buffer[0]);
-        part1 += Evaluate(line);
+        std::string_view line(&buffer[0]);
+        part1 += Evaluate1(line);
         part2 += Evaluate2(line);
     }
-    std::cout << "Part 1: " << part1 << std::endl << "Part 2 " << part2 << std::endl;
+    std::cout << "Part 1: " << part1 << std::endl << "Part 2: " << part2 << std::endl;
     return 0;
 }
