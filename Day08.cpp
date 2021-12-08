@@ -1,87 +1,150 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <set>
 #include <vector>
-#include <string_view>
 #include <array>
-#include <charconv>
+#include <numeric>
+#include <algorithm>
+
+#define ALLc(x) (x).cbegin(),(x).cend()
+#define ALL(x) (x).begin(),(x).end()
 
 int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
-        std::cout << "Usage: Day08.exe Datafilename" << std::endl;
+        std::cout << "Day07.exe inputfilename" << std::endl;
         return -1;
     }
 
     std::ifstream in(argv[1], std::ios::in);
-    if (!in) return -1;
-
-    std::string data;
-    std::vector<std::pair<size_t, int>> instructions;
-
-    constexpr std::array<std::string_view, 3> inst{ "nop", "acc", "jmp" };
-
-    while (in >> data)
+    if (!in)
     {
-        size_t i = std::distance(inst.cbegin(), std::find(inst.cbegin(), inst.cend(), data));
-        in >> data;
-        int value = std::stoi(data);
-        instructions.emplace_back(i, value);
+        std::cout << "Could not open " << argv[1] << std::endl;
+        return -1;
     }
 
-    size_t PC = 0;
-    int acc = 0;
-    std::set<size_t> seenPC;
-
-    auto executeLine = [&seenPC, &instructions, &PC, &acc]()
+    std::array<char, 256> buffer;
+    std::vector<std::pair<std::string, std::string>> inOuts;
+    
+    while (in.getline(&buffer[0], 256))
     {
-        if (seenPC.find(PC) != seenPC.cend())
-            return false;
-        seenPC.insert(PC);
-        switch (instructions[PC].first)
-        {
-        case 1:
-            acc += instructions[PC].second;
-            [[fallthrough]];
-        case 0:
-            ++PC;
-            break;
-        default:
-            PC += instructions[PC].second;
-            break;
-        }
-        return true;
+        std::string line = &buffer[0];
+        size_t pos = line.find('|');
+        inOuts.emplace_back(line.substr(0, pos - 1), line.substr(pos + 2));
+    }
+
+    int part1 = 0, part2 = 0;
+    auto CountPart1 = [&part1](size_t p)
+    {
+        if (p >= 2 && p <= 4 || p == 7)
+            ++part1;
     };
 
-    while (executeLine()) {}
-    std::cout << "Part 1: " << acc << std::endl;
-
-    auto switchInstruction = [](std::pair<size_t, int>& p) { p.first = (!p.first ? 2 : 0); };
-
-    for (size_t i = 0; i < instructions.size(); ++i)
+    for (const auto& p : inOuts)
     {
-        if (instructions[i].first == 1)
-            continue;
-        seenPC.clear();
-        PC = 0;
-        acc = 0;
+        std::string s = p.second;
+        std::string key = p.first;
         
-        switchInstruction(instructions[i]);
-        
-        while (PC != instructions.size())
-            if (!executeLine())
-                break;
-        
-        if (PC == instructions.size())
+        std::array<std::string, 10> sortedKeys;
+        std::vector<std::string> split;
+
+        auto Process = [&sortedKeys, &split](std::string s)
         {
-            std::cout << "Part 2: " << acc << std::endl;
-            break;
+            std::sort(ALL(s));
+            size_t l = s.length();
+            if (l == 2)
+                sortedKeys[1] = s;
+            else if (l == 3)
+                sortedKeys[7] = s;
+            else if (l == 4)
+                sortedKeys[4] = s;
+            else if (l == 7)
+                sortedKeys[8] = s;
+            else
+                split.push_back(s);
+        };
+
+        while (true)
+        {
+            size_t p = key.find(' ');
+            if (p != std::string::npos)
+            {
+                Process(key.substr(0, p));
+                key = key.substr(p + 1);
+            }
+            else
+            {
+                Process(key);
+                break;
+            }
         }
-        else
-            switchInstruction(instructions[i]);
+
+        char topRight, bottomRight;
+        for (auto s : split)
+            if (s.size() == 6)
+            {
+                if (s.find(sortedKeys[1][0]) == std::string::npos)
+                {
+                    sortedKeys[6] = s;
+                    topRight = sortedKeys[1][0];
+                    bottomRight = sortedKeys[1][1];
+                }
+                else if (s.find(sortedKeys[1][1]) == std::string::npos)
+                {
+                    sortedKeys[6] = s;
+                    topRight = sortedKeys[1][1];
+                    bottomRight = sortedKeys[1][0];
+                }
+            }
+
+        for (const auto& s : split)
+            if (s.size() == 5)
+            {
+                if (s.find(bottomRight) != std::string::npos)
+                    sortedKeys[s.find(topRight) != std::string::npos ? 3 : 5] = s;
+                else sortedKeys[2] = s;
+            }
+
+        for (auto s : split)
+            if (s.size() == 6 && s != sortedKeys[6])
+            {
+                bool nine = true;
+                for (char c : s)
+                    if (c != topRight && sortedKeys[5].find(c) == std::string::npos)
+                    {
+                        nine = false;
+                        break;
+                    }
+                sortedKeys[nine ? 9 : 0] = s;
+            }
+
+        int output = 0;
+        auto PushNum = [&output, &sortedKeys](std::string s)
+        {
+            std::sort(ALL(s));
+            output = output * 10 + (int)(std::find(ALLc(sortedKeys), s) - sortedKeys.cbegin());
+        };
+
+        while (true)
+        {
+            size_t p = s.find(' ');
+            if (p != std::string::npos)
+            {
+                CountPart1(p);
+                PushNum(s.substr(0, p));
+                s = s.substr(p + 1);
+            }
+            else
+            {
+                CountPart1(s.size());
+                PushNum(s);
+                break;
+            }
+        }
+        part2 += output;
     }
+    std::cout << "Part 1: " << part1 << "\nPart 2: " << part2 << std::endl;
 
     return 0;
 }
